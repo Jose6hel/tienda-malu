@@ -1,22 +1,28 @@
 :root {
-    --primary: #2563EB;
-    --primary-hover: #1D4ED8;
-    --secondary: #0F172A;
-    --background: #F8FAFC;
+    /* Nueva paleta Morado Clarito / Lavanda */
+    --primary: #A855F7;          /* Morado Clarito principal */
+    --primary-hover: #9333EA;    /* Morado más oscuro al pasar el mouse */
+    --secondary: #1E1B4B;        /* Fondo oscuro con tinte morado */
+    --background: #F9FAFB;
     --surface: #FFFFFF;
-    --text: #334155;
-    --text-muted: #64748B;
-    --border: #E2E8F0;
+    --text: #1F2937;
+    --text-muted: #6B7280;
+    --border: #E5E7EB;
     --radius: 12px;
     --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Colores para las nuevas etiquetas de producto */
+    --tag-new: #EC4899;          /* Rosado/Fucsia para Nuevo */
+    --tag-discount: #EF4444;     /* Rojo para Descuento */
+    --tag-featured: #3B82F6;     /* Azul para Destacado */
 }
 
 [data-theme="dark"] {
-    --background: #0B0F19;
-    --surface: #1E293B;
-    --text: #F1F5F9;
-    --text-muted: #94A3B8;
-    --border: #334155;
+    --background: #0F0E17;       /* Fondo oscuro con tono lavanda profundo */
+    --surface: #1A1825;          /* Superficie oscura armonizada */
+    --text: #F9FAFB;
+    --text-muted: #9CA3AF;
+    --border: #2D2A3E;
 }
 
 * {
@@ -116,13 +122,21 @@ body {
     100% { background-position: -200% 0; }
 }
 
-/* Product Cards Grid */
+/* Product Cards Grid OPTIMIZADO (2 columnas en celular, 4 en PC) */
 .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 24px;
+    grid-template-columns: repeat(2, 1fr); /* 2 columnas fijas en celulares */
+    gap: 12px; /* Espacio más compacto en móvil */
     margin-top: 24px;
 }
+
+@media (min-width: 768px) {
+    .grid {
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* Auto-ajuste en PC */
+        gap: 24px;
+    }
+}
+
 .card {
     background-color: var(--surface);
     border: 1px solid var(--border);
@@ -131,10 +145,11 @@ body {
     transition: var(--transition);
     display: flex;
     flex-direction: column;
+    position: relative; /* Para posicionar las nuevas etiquetas */
 }
 .card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+    box-shadow: 0 10px 15px -3px rgba(168, 85, 247, 0.15); /* Sombra con tono morado */
 }
 .card-img-wrapper {
     position: relative;
@@ -149,29 +164,74 @@ body {
     height: 100%;
     object-fit: cover;
 }
+
+/* Estilos de las Nuevas Etiquetas de Producto */
+.product-tag {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: white;
+    border-radius: 4px;
+    text-transform: uppercase;
+    z-index: 10;
+}
+.tag-nuevo { background-color: var(--tag-new); }
+.tag-destacado { background-color: var(--tag-featured); }
+.tag-descuento { background-color: var(--tag-discount); }
+
 .card-body {
-    padding: 16px;
+    padding: 12px; /* Reducido para que quepa mejor en el grid de 2 col */
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 }
+
+@media (min-width: 768px) {
+    .card-body { padding: 16px; gap: 8px; }
+}
+
 .product-price {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     font-weight: 700;
     color: var(--primary);
+}
+@media (min-width: 768px) {
+    .product-price { font-size: 1.25rem; }
+}
+
+/* Sistema de Calificaciones y Reseñas rápidas */
+.rating-container {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.85rem;
+    color: #FBBF24; /* Color dorado para estrellas */
+}
+.comments-link {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-decoration: underline;
+    cursor: pointer;
 }
 
 /* Buttons */
 .btn {
     width: 100%;
-    padding: 12px;
+    padding: 10px;
     border: none;
     border-radius: 8px;
     font-weight: 600;
     cursor: pointer;
     transition: var(--transition);
     text-align: center;
+    font-size: 0.9rem;
+}
+@media (min-width: 768px) {
+    .btn { padding: 12px; font-size: 1rem; }
 }
 .btn-primary {
     background-color: var(--primary);

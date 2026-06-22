@@ -35,5 +35,22 @@ export const store = {
         this.setState({
             cart: this.state.cart.map(item => item.id === productId ? { ...item, quantity } : item)
         });
+    },
+    
+    // NUEVA FUNCIÓN: Generar texto del pedido listo para WhatsApp
+    generateOrderMessage() {
+        if (this.state.cart.length === 0) return "";
+        
+        let message = "¡Hola! Me gustaría realizar el siguiente pedido en *Tienda Malu*:\n\n";
+        let total = 0;
+        
+        this.state.cart.forEach(item => {
+            const subtotal = item.price * item.quantity;
+            total += subtotal;
+            message += `• *${item.name}* (x${item.quantity}) - $${subtotal.toLocaleString()}\n`;
+        });
+        
+        message += `\n*Total a pagar:* $${total.toLocaleString()}`;
+        return encodeURIComponent(message);
     }
 };

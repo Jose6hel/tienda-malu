@@ -6,6 +6,8 @@ import { renderProductDetail } from '../views/product.js';
 import { renderAdmin } from '../views/admin.js';
 import { db } from './firebase.js';
 import { collection, query, where, onSnapshot } from "firebase/firestore";
+// IMPORTACIÓN NUEVA: Módulo de comentarios
+import { initCommentsModule } from '../components/comments.js';
 
 const routes = {
     '/': renderHome,
@@ -32,10 +34,7 @@ async function router() {
         }
     }
 
-    
     const path = window.location.pathname;
-    
-    
 
     // Validación estricta de rutas protegidas
     if (path.startsWith('/admin')) {
@@ -80,7 +79,10 @@ document.addEventListener('DOMContentLoaded', () => {
             router();
         }
     });
+    
+    // INICIALIZACIONES AL CARGAR LA APP
     initAnnouncements();
+    initCommentsModule(); // Inicializa los listeners de la modal de comentarios una sola vez
     router();
 });
 

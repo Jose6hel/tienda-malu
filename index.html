@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tienda Malu | Tecnología, Celulares y Accesorios</title>
-    <meta name="description" content="Explora las mejores ofertas en tecnología, celulares de última generación y accesorios en Tienda Malu. Compra segura con atención directa.">
+    <title>Tienda Malu | ¡Tu mundo en un solo lugar!</title>
+    <meta name="description" content="Explora las mejores ofertas en tecnología, calzado, ropa de moda y comida en Tienda Malu. Compra segura con atención directa.">
     <meta name="robots" content="index, follow">
     
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://tienda-malu.vercel.app/">
-    <meta property="og:title" content="Tienda Malu | Tecnología y Celulares">
-    <meta property="og:description" content="Explora las mejores ofertas en tecnología, celulares de última generación y accesorios en Tienda Malu.">
+    <meta property="og:title" content="Tienda Malu | ¡Tu mundo en un solo lugar!">
+    <meta property="og:description" content="Explora las mejores ofertas en tecnología, calzado, ropa de moda y comida en Tienda Malu.">
     <meta property="og:image" content="/src/assets/placeholder.svg">
 
     <link rel="stylesheet" href="/styles.css">
@@ -24,10 +24,43 @@
       "@type": "OnlineStore",
       "name": "Tienda Malu",
       "url": "https://tienda-malu.vercel.app/",
-      "description": "Tienda virtual de tecnología y celulares de alta calidad.",
+      "description": "Tienda virtual multi-categoría: tecnología, calzado, ropa y comida.",
       "sameAs": []
     }
     </script>
+
+    <style>
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 2000; opacity: 0; pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+        .modal-overlay.open { opacity: 1; pointer-events: auto; }
+        .modal-container {
+            background: var(--surface);
+            color: var(--text);
+            width: 90%; max-width: 500px; max-height: 85vh;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.15);
+            display: flex; flex-direction: column;
+            overflow: hidden; transform: scale(0.95);
+            transition: transform 0.25s ease;
+        }
+        .modal-overlay.open .modal-container { transform: scale(1); }
+        .modal-header {
+            padding: 16px 20px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .modal-body { padding: 20px; overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column; gap: 16px; }
+        .star-rating { display: flex; gap: 6px; font-size: 1.5rem; cursor: pointer; color: #E2E8F0; }
+        .star-rating .star.active { color: #FBBF24; }
+        .comment-item { padding: 10px; background: var(--background); border-radius: 8px; border: 1px solid var(--border); }
+    </style>
 </head>
 <body>
     <div id="announcement-bar" class="announcement-bar hidden">
@@ -39,6 +72,41 @@
     <main id="app-root" class="container"></main>
 
     <div id="cart-sidebar" class="cart-sidebar"></div>
+
+    <div id="comments-modal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 id="modal-product-title" style="font-weight: 700;">Reseñas del Producto</h3>
+                <button class="btn-icon" id="close-comments-modal" style="font-size: 1.2rem;">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="comments-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto;">
+                    <p style="color: var(--text-muted); text-align: center;">Cargando opiniones...</p>
+                </div>
+                
+                <hr style="border: 0; border-top: 1px solid var(--border); margin: 4px 0;">
+                
+                <form id="form-add-comment" style="display: flex; flex-direction: column; gap: 12px;">
+                    <h4 style="font-weight: 600; font-size: 0.95rem;">Deja tu Calificación</h4>
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Puntuación:</label>
+                        <div class="star-rating" id="star-selector">
+                            <span class="star" data-value="1">★</span>
+                            <span class="star" data-value="2">★</span>
+                            <span class="star" data-value="3">★</span>
+                            <span class="star" data-value="4">★</span>
+                            <span class="star" data-value="5">★</span>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label style="font-size: 0.8rem; color: var(--text-muted);">Tu Opinión (Opcional)</label>
+                        <textarea id="comment-text" class="form-input" rows="2" placeholder="Ej: Me encantó la calidad, llegó súper rápido." style="resize: none; font-family: inherit;"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="padding: 10px;">Publicar Comentario</button>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <script type="importmap">
       {
