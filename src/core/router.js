@@ -4,13 +4,13 @@ import { renderNavbar } from '../components/navbar.js';
 import { renderHome } from '../views/home.js';
 import { renderProductDetail } from '../views/product.js';
 import { renderAdmin } from '../views/admin.js';
-import { db } from './firebase.js';
-import { auth } from './firebase.js'; 
+import { db, auth } from './firebase.js'; 
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { initCommentsModule } from '../components/comments.js';
 
 const ADMIN_EMAILS = [
     'jos3davidortizverano2009@gmail.com',
+    'josegamer18901@gmail.com',
     'mariaveranodevalencia@gmail.com'
 ];
 
@@ -20,14 +20,11 @@ export function sanitize(string) {
     return string.replace(/[&<>"'/]/g, (s) => map[s]);
 }
 
-// ==========================================================
-// VISTA DE PERFIL LIMPIA E INYECTADA DIRECTAMENTE
-// ==========================================================
+// Vista limpia inyectada directamente para sobrescribir el archivo estático corrupto
 function renderProfileDirect(container) {
     if (!container) return;
     const { user } = store.state;
 
-    // Si no hay sesión iniciada
     if (!user) {
         container.innerHTML = `
             <div style="max-width: 500px; margin: 60px auto; padding: 32px; text-align: center; background: var(--surface); border-radius: 8px; color: var(--text); box-shadow: var(--shadow);">
@@ -44,10 +41,8 @@ function renderProfileDirect(container) {
         return;
     }
 
-    // Avatar por defecto usando su correo
     const avatarUrl = 'https://api.dicebear.com/7.x/bottts/svg?seed=' + (user.email || 'invitado');
 
-    // Estructura limpia (Sin lápiz de editar, sin vistos recientemente)
     container.innerHTML = `
         <div style="max-width: 600px; margin: 40px auto; padding: 0 16px;">
             <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 32px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 20px; box-shadow: var(--shadow);">
@@ -63,7 +58,7 @@ function renderProfileDirect(container) {
 
                 <hr style="width: 100%; border: 0; border-top: 1px solid var(--border); margin: 8px 0;">
 
-                <button id="btn-logout-direct" class="btn" style="background: #EF4444; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <button id="btn-logout-profile" class="btn" style="background: #EF4444; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
                     🚪 Cerrar Sesión
                 </button>
                 
@@ -71,8 +66,8 @@ function renderProfileDirect(container) {
         </div>
     `;
 
-    // Evento de Cerrar Sesión con recarga limpia
-    const logoutBtn = document.getElementById('btn-logout-direct');
+    // Botón interno mapeado con ID único para que no choque con el Navbar
+    const logoutBtn = document.getElementById('btn-logout-profile');
     if (logoutBtn) {
         logoutBtn.onclick = async (e) => {
             e.preventDefault();
@@ -80,21 +75,20 @@ function renderProfileDirect(container) {
                 try {
                     await auth.signOut();
                     store.setState({ user: null });
-                    window.location.href = "/"; // Destruye estados colgados reiniciando la app
+                    window.location.href = "/";
                 } catch (err) {
-                    alert("Error al cerrar sesión: " + err.message);
+                    alert("Error: " + err.message);
                 }
             }
         };
     }
 }
-// ==========================================================
 
 const routes = {
     '/': renderHome,
     '/product': renderProductDetail,
     '/admin': renderAdmin,
-    '/profile': renderProfileDirect, // Apunta a la función interna limpia
+    '/profile': renderProfileDirect,
     '/perfil': renderProfileDirect
 };
 
@@ -118,7 +112,7 @@ async function router() {
     const currentUser = store.state.user;
 
     if (path.startsWith('/admin')) {
-        if (!currentUser || !ADMIN_EMAILS.includes(currentUser.email)) {
+        if (!currentUser || !ADMIN_EMAILS.map(e => e.toLowerCase()).includes(currentUser.email.toLowerCase())) {
             window.history.pushState({}, "", "/");
             router();
             return;
@@ -170,5 +164,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
 store.subscribe(() => {
     renderNavbar();
-    router(); // Forzar re-renderizado total al cambiar estados globales
 });

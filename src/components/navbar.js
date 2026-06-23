@@ -2,7 +2,7 @@ import { store } from '../core/store.js';
 import { sendMagicLink, logout } from '../core/auth.js';
 import { sanitize } from '../core/router.js';
 
-// Lista unificada de administradores autorizados (Sincronizada con admin.js)
+// Lista unificada de administradores autorizados
 const ADMIN_EMAILS = [
     'jos3davidortizverano2009@gmail.com',
     'josegamer18901@gmail.com',
@@ -16,10 +16,10 @@ export function renderNavbar() {
 
     document.documentElement.setAttribute('data-theme', theme);
 
-    // Imagen de perfil dinámica basada en el correo del usuario conectado o un avatar por defecto
+    // Imagen de perfil dinámica basada en el correo o un avatar por defecto
     const avatarUrl = user?.photoURL || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + (user?.email || 'invitado');
 
-    // Verificar si el usuario actual es administrador por su correo
+    // Verificar si el usuario actual es administrador
     const isAdmin = user && user.email && ADMIN_EMAILS.map(e => e.toLowerCase()).includes(user.email.toLowerCase());
 
     nav.innerHTML = `
@@ -91,7 +91,6 @@ export function renderNavbar() {
         </style>
     `;
 
-    // Renderizado del Sidebar del Carrito
     renderCartSidebar();
 
     // --- Vinculación de Eventos ---
@@ -106,8 +105,22 @@ export function renderNavbar() {
         document.getElementById('cart-sidebar').classList.add('open');
     };
 
+    // Función de cierre unificada para evitar trabas de estado
+    const handleSignOut = async (e) => {
+        e.preventDefault();
+        if (confirm("¿Estás seguro de que deseas cerrar tu sesión?")) {
+            try {
+                await logout();
+                store.setState({ user: null });
+                window.location.href = "/"; 
+            } catch (err) {
+                alert("Error al cerrar sesión: " + err.message);
+            }
+        }
+    };
+
     if (document.getElementById('btn-logout')) {
-        document.getElementById('btn-logout').onclick = logout;
+        document.getElementById('btn-logout').onclick = handleSignOut;
     }
 
     if (document.getElementById('btn-login-modal')) {
@@ -199,10 +212,7 @@ function renderCartSidebar() {
     });
 
     sidebar.querySelectorAll('.btn-whatsapp-checkout').forEach(btn => {
-        btn.onclick = () => {
-            const phoneNumber = btn.dataset.number;
-            handleCheckout(phoneNumber);
-        };
+        btn.onclick = () => handleCheckout(btn.dataset.number);
     });
 }
 
