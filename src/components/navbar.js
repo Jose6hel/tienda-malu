@@ -2,15 +2,24 @@ import { store } from '../core/store.js';
 import { sendMagicLink, logout } from '../core/auth.js';
 import { sanitize } from '../core/router.js';
 
+// Lista unificada de administradores autorizados
+const ADMIN_EMAILS = [
+    'jos3davidortizverano2009@gmail.com',
+    'mariaveranodevalencia@gmail.com'
+];
+
 export function renderNavbar() {
     const nav = document.getElementById('main-navbar');
-    const { user, role, cart, theme } = store.state;
+    const { user, cart, theme } = store.state;
     const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
 
     document.documentElement.setAttribute('data-theme', theme);
 
     // Imagen de perfil dinámica basada en el correo del usuario conectado o un avatar por defecto
     const avatarUrl = user?.photoURL || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + (user?.email || 'invitado');
+
+    // Verificar si el usuario actual es administrador por su correo
+    const isAdmin = user && ADMIN_EMAILS.includes(user.email);
 
     nav.innerHTML = `
         <nav class="navbar nav-desktop" style="box-shadow: 0 2px 4px rgba(168, 85, 247, 0.05); position: sticky; top: 0; z-index: 100; background: var(--surface);">
@@ -19,7 +28,7 @@ export function renderNavbar() {
                 <button class="btn-icon" id="theme-toggle" style="transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">${theme === 'light' ? '🌙' : '☀️'}</button>
                 <button class="btn-icon" id="cart-toggle" style="transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">🛒 <span class="badge">${totalItems}</span></button>
                 
-                ${role === 'admin' ? '<a href="/admin" class="btn btn-primary" style="padding:6px 12px; font-size:14px;" data-link>Panel</a>' : ''}
+                ${isAdmin ? '<a href="/admin" class="btn btn-primary" style="padding:6px 12px; font-size:14px;" data-link>Panel</a>' : ''}
                 
                 ${user ? `
                     <a href="/profile" data-link style="display: flex; align-items: center; gap: 6px; text-decoration: none; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border);">
@@ -34,10 +43,10 @@ export function renderNavbar() {
         </nav>
 
         <nav class="nav-mobile-tabs" style="position: fixed; bottom: 0; left: 0; width: 100%; background: var(--surface); border-top: 1px solid var(--border); display: flex; justify-content: space-around; align-items: center; padding: 8px 0; z-index: 100; box-shadow: 0 -2px 10px rgba(0,0,0,0.05);">
-            <div onclick="window.location.href='/'" style="display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer;">
+            <a href="/" data-link style="display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; text-decoration: none;">
                 <span style="font-size: 18px;">🏠</span>
                 <span style="font-size: 11px; color: var(--text); font-weight: 500;">Inicio</span>
-            </div>
+            </a>
 
             <div id="cart-toggle-mobile" style="display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; position: relative;">
                 <span style="font-size: 18px;">🛒</span>
@@ -51,10 +60,10 @@ export function renderNavbar() {
             </div>
 
             ${user ? `
-                <div onclick="window.location.href='/profile'" style="display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer;">
+                <a href="/profile" data-link style="display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; text-decoration: none;">
                     <img src="${avatarUrl}" alt="Perfil" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover; border: 1px solid var(--primary);">
                     <span style="font-size: 11px; color: var(--text); font-weight: 500;">Perfil</span>
-                </div>
+                </a>
             ` : `
                 <div id="btn-login-mobile" style="display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer;">
                     <span style="font-size: 18px;">🔑</span>
@@ -66,7 +75,7 @@ export function renderNavbar() {
         <style>
             @media (max-width: 768px) {
                 .nav-desktop { display: none !important; }
-                body { padding-bottom: 64px !important; } /* Margen inferior para que las pestañas no tapen el contenido */
+                body { padding-bottom: 64px !important; }
             }
             @media (min-width: 769px) {
                 .nav-mobile-tabs { display: none !important; }
@@ -77,41 +86,31 @@ export function renderNavbar() {
     // Renderizado del Sidebar del Carrito
     renderCartSidebar();
 
-    // --- Vinculación de Eventos (Soporte Escritorio y Móvil sin alterar lógica) ---
-
-    // Manejo de Cambio de Tema (Escritorio)
+    // --- Vinculación de Eventos ---
     document.getElementById('theme-toggle').onclick = () => toggleAppTheme(theme);
-
-    // Manejo de Cambio de Tema (Móvil)
     document.getElementById('theme-toggle-mobile').onclick = () => toggleAppTheme(theme);
 
-    // Abrir Carrito (Escritorio)
     document.getElementById('cart-toggle').onclick = () => {
         document.getElementById('cart-sidebar').classList.add('open');
     };
 
-    // Abrir Carrito (Móvil)
     document.getElementById('cart-toggle-mobile').onclick = () => {
         document.getElementById('cart-sidebar').classList.add('open');
     };
 
-    // Botón Salir (Solo si está autenticado)
     if (document.getElementById('btn-logout')) {
         document.getElementById('btn-logout').onclick = logout;
     }
 
-    // Botón Ingresar (Escritorio)
     if (document.getElementById('btn-login-modal')) {
         document.getElementById('btn-login-modal').onclick = showLoginPrompt;
     }
 
-    // Botón Ingresar (Móvil)
     if (document.getElementById('btn-login-mobile')) {
         document.getElementById('btn-login-mobile').onclick = showLoginPrompt;
     }
 }
 
-// Función auxiliar para centralizar la conmutación de temas
 function toggleAppTheme(currentTheme) {
     const nextTheme = currentTheme === 'light' ? 'dark' : 'light';
     localStorage.setItem('theme', nextTheme);
@@ -174,7 +173,6 @@ function renderCartSidebar() {
         </div>
     `;
 
-    // Eventos del Carrito
     document.getElementById('cart-close').onclick = () => sidebar.classList.remove('open');
 
     sidebar.querySelectorAll('.btn-qty').forEach(btn => {
@@ -192,7 +190,6 @@ function renderCartSidebar() {
         btn.onclick = () => store.removeFromCart(btn.dataset.id);
     });
 
-    // Eventos para el checkout manual de asesores
     sidebar.querySelectorAll('.btn-whatsapp-checkout').forEach(btn => {
         btn.onclick = () => {
             const phoneNumber = btn.dataset.number;

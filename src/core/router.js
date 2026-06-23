@@ -11,11 +11,18 @@ import { collection, query, where, onSnapshot } from "firebase/firestore";
 // IMPORTACIÓN NUEVA: Módulo de comentarios
 import { initCommentsModule } from '../components/comments.js';
 
+// Lista de correos autorizados como Administradores
+const ADMIN_EMAILS = [
+    'jos3davidortizverano2009@gmail.com',
+    'mariaveranodevalencia@gmail.com'
+];
+
 const routes = {
     '/': renderHome,
     '/product': renderProductDetail,
     '/admin': renderAdmin,
-    '/profile': renderProfile // <-- RUTA NUEVA REGISTRADA CON ÉXITO
+    '/profile': renderProfile,
+    '/perfil': renderProfile // Soporte por si en el navbar se configuró en español
 };
 
 // Sanitización de entradas globales contra ataques XSS
@@ -37,12 +44,26 @@ async function router() {
         }
     }
 
-    const path = window.location.pathname;
+    // Limpiamos la ruta para evitar errores por barras diagonales al final (ej: /admin/ -> /admin)
+    let path = window.location.pathname;
+    if (path.length > 1 && path.endsWith('/')) {
+        path = path.slice(0, -1);
+    }
 
-    // Validación estricta de rutas protegidas
+    const currentUser = store.state.user;
+
+    // Validación estricta de rutas protegidas (Panel Admin)
     if (path.startsWith('/admin')) {
-        // Validación dual: Que tenga rol admin o que su correo esté en la lista autorizada de la vista
-        if (!store.state.user) {
+        // 1. Si ni siquiera está logueado, redirige a la Home
+        if (!currentUser) {
+            window.history.pushState({}, "", "/");
+            router();
+            return;
+        }
+        
+        // 2. Si está logueado pero su correo NO está en la lista de admins
+        if (!ADMIN_EMAILS.includes(currentUser.email)) {
+            alert("Acceso denegado: No tienes permisos de administrador.");
             window.history.pushState({}, "", "/");
             router();
             return;
@@ -50,13 +71,16 @@ async function router() {
     }
 
     renderNavbar();
+    
+    // Buscar la función de la vista, si no existe redirige a Home
     const viewFunction = routes[path] || routes['/'];
     
     const root = document.getElementById('app-root');
-    root.innerHTML = ''; 
-    
-    // Pasamos el root y el email del usuario actual por si la vista (como Admin o Perfil) necesita validarlo
-    await viewFunction(root, store.state.user?.email);
+    if (root) {
+        root.innerHTML = ''; 
+        // Renderizamos la vista pasándole el contenedor y el email del usuario activo
+        await viewFunction(root, currentUser?.email);
+    }
 }
 
 // Suscripción al sistema de anuncios en tiempo real (Firestore Realtime)
@@ -65,12 +89,14 @@ function initAnnouncements() {
     onSnapshot(q, (snapshot) => {
         const bar = document.getElementById('announcement-bar');
         const textNode = document.getElementById('announcement-text');
-        if (!snapshot.empty) {
-            const data = snapshot.docs[0].data();
-            textNode.textContent = data.text;
-            bar.classList.remove('hidden');
-        } else {
-            bar.classList.add('hidden');
+        if (bar && textNode) {
+            if (!snapshot.empty) {
+                const data = snapshot.docs[0].data();
+                textNode.textContent = data.text;
+                bar.classList.remove('hidden');
+            } else {
+                bar.classList.add('hidden');
+            }
         }
     });
 }

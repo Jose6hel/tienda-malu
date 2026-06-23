@@ -33,10 +33,9 @@ export function createProductCard(product) {
     // 3. Manejo de múltiples imágenes (usa la primera del arreglo si existe)
     const displayImage = product.images && product.images.length > 0 ? product.images[0] : (product.imageUrl || placeholder);
 
-    // Renderizado de la tarjeta interactiva limpia, apuntando directamente a la URL de detalles
+    // Renderizado de la tarjeta usando un enlace <a> compatible con el Router SPA
     return `
-        <div class="card" data-id="${product.id}" style="cursor: pointer; display: flex; flex-direction: column; position: relative;" onclick="if(!event.target.classList.contains('btn-add-cart')) window.location.href='/product?id=${product.id}'">
-            <!-- Etiqueta flotante con lógica de descuento dinámico -->
+        <a href="/product?id=${product.id}" data-link class="card" data-id="${product.id}" style="cursor: pointer; display: flex; flex-direction: column; position: relative; text-decoration: none; color: inherit;">
             ${tagHtml}
             
             <div class="card-img-wrapper" style="overflow: hidden;">
@@ -47,17 +46,15 @@ export function createProductCard(product) {
                 <span style="font-size:0.75rem; text-transform:uppercase; font-weight:600; color:var(--primary);">${sanitize(Array.isArray(product.category) ? product.category.join(', ') : (product.category || 'General'))}</span>
                 <h3 style="font-size:1rem; font-weight:600; margin:4px 0; line-height:1.2; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; height:2.4em; color: var(--text);">${sanitize(product.name)}</h3>
                 
-                <!-- Sistema de Calificación limpio sin el enlace flotante de leer comentarios -->
                 <div class="rating-container" style="display: flex; align-items: center; gap: 4px; font-size: 0.85rem; margin-bottom: 8px;">
                     <span style="color: #FBBF24;">${stars}</span>
                     <span style="color: var(--text-muted); font-weight: 500;">(${avgRating})</span>
                 </div>
                 
-                <!-- Estructura de Precios Actualizada -->
                 ${priceHtml}
                 
-                <button class="btn btn-primary btn-add-cart" data-id="${product.id}" style="margin-top:12px; width: 100%;">Agregar al Carrito</button>
+                <button class="btn btn-primary btn-add-cart" data-id="${product.id}" style="margin-top:12px; width: 100%;" onclick="event.preventDefault(); event.stopPropagation();">Agregar al Carrito</button>
             </div>
-        </div>
+        </a>
     `;
 }
