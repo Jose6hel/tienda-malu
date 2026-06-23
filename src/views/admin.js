@@ -6,36 +6,47 @@ import { sanitize } from '../core/router.js';
 // LISTA DE ADMINISTRADORES AUTORIZADOS
 const ADMIN_WHITELIST = [
     "mariaveranodevalencia@gmail.com",
-    "josegamer18901@gmail.com",
-    "jos3davidortizverano2009@gmail.com" // Agregado para asegurar correspondencia con el Navbar SPA
+    "josegamer18901@gmail.com" // Autorizado automáticamente para tus pruebas de desarrollo
 ];
 
 export async function renderAdmin(container, currentUserEmail) {
-    // ... (Mantén tu lógica de validación igual)
+    // Validación de seguridad por correo
+    if (!currentUserEmail || !ADMIN_WHITELIST.map(e => e.toLowerCase()).includes(currentUserEmail.toLowerCase())) {
+        container.innerHTML = `
+            <div style="padding: 40px; text-align: center;">
+                <p style="color:#EF4444; font-weight:700; font-size:1.2rem;">Acceso Restringido</p>
+                <p style="color:var(--text-muted); margin-top:8px;">No tienes permisos de administración en Tienda Malu.</p>
+            </div>
+        `;
+        return;
+    }
 
-    container.innerHTML = `
-        <div class="admin-container" style="padding: 16px;">
-            <aside id="admin-sidebar" style="background:var(--surface); padding:16px; border-radius:var(--radius); border:1px solid var(--border); display:flex; flex-wrap:wrap; gap:8px; margin-bottom: 20px;">
-                <h3 style="width:100%; margin-bottom:10px; font-size: 1.1rem; font-weight: 700;">Panel de Control</h3>
-                <button class="btn admin-tab-btn" id="tab-products" style="background:transparent; color:var(--text); padding:8px 12px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; font-size:13px;">📦 Productos</button>
-                <button class="btn admin-tab-btn" id="tab-categories" style="background:transparent; color:var(--text); padding:8px 12px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; font-size:13px;">📁 Categorías</button>
-                <button class="btn admin-tab-btn" id="tab-announcements" style="background:transparent; color:var(--text); padding:8px 12px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; font-size:13px;">📢 Anuncios</button>
-                <button class="btn admin-tab-btn" id="tab-analytics" style="background:transparent; color:var(--text); padding:8px 12px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; font-size:13px;">📈 Analíticas</button>
-            </aside>
-            
-            <section id="admin-content" style="background:var(--surface); padding:20px; border-radius:var(--radius); border:1px solid var(--border); min-height: 400px; width: 100%; box-sizing: border-box;">
-            </section>
-        </div>
-
-        <style>
-            @media (min-width: 768px) {
-                .admin-container { display: grid; grid-template-columns: 240px 1fr; gap: 24px; padding: 16px 0; }
-                #admin-sidebar { flex-direction: column; flex-wrap: nowrap; margin-bottom: 0; }
+    // Inyección de estilos CSS responsivos para que el panel se adapte a celulares
+    if (!document.getElementById('admin-responsive-styles')) {
+        const style = document.createElement('style');
+        style.id = 'admin-responsive-styles';
+        style.innerHTML = `
+            @media (max-width: 768px) {
+                .admin-grid {
+                    grid-template-columns: 1fr !important;
+                }
+                #form-add-product {
+                    grid-template-columns: 1fr !important;
+                }
+                #admin-sidebar {
+                    flex-direction: row !important;
+                    overflow-x: auto;
+                    white-space: nowrap;
+                    padding: 10px !important;
+                }
+                .admin-tab-btn {
+                    padding: 8px 12px !important;
+                    font-size: 13px;
+                }
             }
-        </style>
-    `;
-
-    // ... (El resto de tu lógica de eventos sigue funcionando igual)
+        `;
+        document.head.appendChild(style);
+    }
 
     container.innerHTML = `
         <div class="admin-grid" style="display: grid; grid-template-columns: 240px 1fr; gap: 24px; padding: 16px 0;">
@@ -84,7 +95,7 @@ export async function renderAdmin(container, currentUserEmail) {
         showAnalyticsManagement(contentArea);
     };
 
-    // Inicialización de la primera pestaña por defecto
+    // Inicialización por defecto
     switchTabHighlight('tab-products');
     showProductManagement(contentArea);
 }
@@ -98,12 +109,16 @@ async function showProductManagement(target) {
                 <input type="text" id="p-name" class="form-input" style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border); background:var(--background); color:var(--text);" required>
             </div>
             <div class="form-group">
-                <label style="display:block; margin-bottom:6px; font-weight:600; font-size:14px;">Precio Actual (COP) *</label>
-                <input type="number" id="p-price" class="form-input" style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border); background:var(--background); color:var(--text);" required>
+                <label style="display:block; margin-bottom:6px; font-weight:600; font-size:14px;">Precio Original / Antes (COP)</label>
+                <input type="number" id="p-original-price" class="form-input" style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border); background:var(--background); color:var(--text);" placeholder="Ej: 150000">
             </div>
             <div class="form-group">
-                <label style="display:block; margin-bottom:6px; font-weight:600; font-size:14px;">Precio Antes / Original (Solo para Descuentos)</label>
-                <input type="number" id="p-original-price" class="form-input" style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border); background:var(--background); color:var(--text);" placeholder="Ej: 150000">
+                <label style="display:block; margin-bottom:6px; font-weight:600; font-size:14px;">Porcentaje de Descuento (%)</label>
+                <input type="number" id="p-discount-percentage" class="form-input" min="0" max="100" style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border); background:var(--background); color:var(--text);" placeholder="Ej: 20">
+            </div>
+            <div class="form-group" style="grid-column:1/-1;">
+                <label style="display:block; margin-bottom:6px; font-weight:600; font-size:14px;">Precio Final con Descuento (COP) *</label>
+                <input type="number" id="p-price" class="form-input" style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border); background:var(--background); color:var(--text); font-weight:bold;" required placeholder="Se calcula solo o ponlo manual">
             </div>
             
             <div class="form-group" style="grid-column:1/-1;">
@@ -152,6 +167,28 @@ async function showProductManagement(target) {
     const btnSubmit = document.getElementById('btn-submit-form');
     const btnCancel = document.getElementById('btn-cancel-edit');
 
+    // Lógica para calcular automáticamente el precio final y cambiar la etiqueta a "Descuento"
+    const inputOriginalPrice = document.getElementById('p-original-price');
+    const inputDiscountPercentage = document.getElementById('p-discount-percentage');
+    const inputFinalPrice = document.getElementById('p-price');
+    const selectTag = document.getElementById('p-tag');
+
+    const calculateDiscount = () => {
+        const originalPrice = parseFloat(inputOriginalPrice.value) || 0;
+        const discount = parseFloat(inputDiscountPercentage.value) || 0;
+
+        if (originalPrice > 0 && discount > 0) {
+            const finalPrice = originalPrice - (originalPrice * (discount / 100));
+            inputFinalPrice.value = Math.round(finalPrice);
+            selectTag.value = "Descuento"; // Selecciona automáticamente la etiqueta Descuento
+        } else if (originalPrice > 0 && discount === 0) {
+            inputFinalPrice.value = originalPrice;
+        }
+    };
+
+    inputOriginalPrice.oninput = calculateDiscount;
+    inputDiscountPercentage.oninput = calculateDiscount;
+
     let localProducts = [];
 
     const loadCategoriesCheckboxes = async () => {
@@ -186,9 +223,9 @@ async function showProductManagement(target) {
             const tagBadge = p.tag ? `<span style="font-size:10px; background:var(--primary); color:white; padding:2px 6px; border-radius:4px; margin-left:6px;">${p.tag}</span>` : '';
             const displayCat = Array.isArray(p.category) ? p.category.join(', ') : (p.category || 'General');
             return `
-                <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--background); border-radius:8px; border:1px solid var(--border);">
-                    <div style="flex-grow:1; color: var(--text);">
-                        <strong>${sanitize(p.name)}</strong> - $${p.price.toLocaleString()} <span style="color:var(--text-muted)">[${sanitize(displayCat)}]</span> ${tagBadge}
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--background); border-radius:8px; border:1px solid var(--border); flex-wrap: wrap; gap: 8px;">
+                    <div style="flex-grow:1; color: var(--text); min-width: 200px;">
+                        <strong>${sanitize(p.name)}</strong> - $${p.price.toLocaleString()} ${p.discountPercentage ? `<span style="color:#22C55E; font-weight:600;">(-${p.discountPercentage}%)</span>` : ''} <span style="color:var(--text-muted)">[${sanitize(displayCat)}]</span> ${tagBadge}
                     </div>
                     <div style="display:flex; gap:8px;">
                         <button class="btn btn-edit-p" data-id="${p.id}" style="width:auto; padding:6px 12px; background:var(--primary); color:white; border-radius:6px; border:none; cursor:pointer;">Editar</button>
@@ -210,6 +247,7 @@ async function showProductManagement(target) {
                     document.getElementById('p-name').value = prod.name;
                     document.getElementById('p-price').value = prod.price;
                     document.getElementById('p-original-price').value = prod.originalPrice || '';
+                    document.getElementById('p-discount-percentage').value = prod.discountPercentage || '';
                     document.getElementById('p-tag').value = prod.tag || '';
                     document.getElementById('p-colors').value = prod.colors ? prod.colors.join(', ') : '';
                     document.getElementById('p-sizes').value = prod.sizes ? prod.sizes.join(', ') : '';
@@ -274,6 +312,7 @@ async function showProductManagement(target) {
                 name: document.getElementById('p-name').value,
                 price: parseFloat(document.getElementById('p-price').value),
                 originalPrice: document.getElementById('p-original-price').value ? parseFloat(document.getElementById('p-original-price').value) : null,
+                discountPercentage: document.getElementById('p-discount-percentage').value ? parseInt(document.getElementById('p-discount-percentage').value) : null,
                 category: selectedCategories,
                 tag: document.getElementById('p-tag').value,
                 images: uploadedImages,
