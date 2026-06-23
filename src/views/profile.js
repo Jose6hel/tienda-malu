@@ -108,71 +108,78 @@ export function renderProfile(container) {
     const editBtn = document.getElementById('btn-edit-avatar');
 
     // Vincular el click del botón al input oculto
-    editBtn.onclick = () => fileInput.click();
+    if (editBtn) {
+        editBtn.onclick = () => fileInput.click();
+    }
 
     // Evento modular v10 para procesar y persistir el archivo
-    fileInput.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+    if (fileInput) {
+        fileInput.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
 
-        editBtn.textContent = "⏳";
-        editBtn.style.pointerEvents = "none";
+            editBtn.textContent = "⏳";
+            editBtn.style.pointerEvents = "none";
 
-        try {
-            // 1. Subida directa usando la SDK v10 Modular
-            const storageRef = ref(storage, `avatars/${Date.now()}_${file.name}`);
-            const snapshot = await uploadBytes(storageRef, file);
-            const downloadUrl = await getDownloadURL(snapshot.ref);
+            try {
+                // 1. Subida directa usando la SDK v10 Modular
+                const storageRef = ref(storage, `avatars/${Date.now()}_${file.name}`);
+                const snapshot = await uploadBytes(storageRef, file);
+                const downloadUrl = await getDownloadURL(snapshot.ref);
 
-            // 2. Actualizar de forma nativa en Firebase Auth v10
-            const auth = getAuth();
-            const authUser = auth.currentUser;
-            
-            if (authUser) {
-                // Actualizamos el perfil directamente en el servidor de Firebase
-                await updateProfile(authUser, { photoURL: downloadUrl });
+                // 2. Actualizar de forma nativa en Firebase Auth v10
+                const auth = getAuth();
+                const authUser = auth.currentUser;
                 
-                // Actualizamos el Store local de inmediato clonando de forma limpia las propiedades legibles
-                store.setState({ 
-                    user: {
-                        uid: authUser.uid,
-                        email: authUser.email,
-                        displayName: authUser.displayName,
-                        photoURL: downloadUrl // Forzamos la nueva URL para evitar el retraso del token
-                    } 
-                });
-                
-                // Cambiar visualmente la imagen al instante en la pantalla
-                if (avatarImg) avatarImg.src = downloadUrl;
-                alert("¡Tu foto de perfil ha sido subida y actualizada con éxito!");
+                if (authUser) {
+                    await updateProfile(authUser, { photoURL: downloadUrl });
+                    
+                    // Actualizamos el Store local de inmediato clonando de forma limpia
+                    store.setState({ 
+                        user: {
+                            uid: authUser.uid,
+                            email: authUser.email,
+                            displayName: authUser.displayName,
+                            photoURL: downloadUrl
+                        } 
+                    });
+                    
+                    // Cambiar visualmente la imagen al instante en la pantalla
+                    if (avatarImg) avatarImg.src = downloadUrl;
+                    alert("¡Tu foto de perfil ha sido subida y actualizada con éxito!");
+                }
+            } catch (error) {
+                console.error("Error al subir archivo:", error);
+                alert("Error al intentar subir la imagen: " + error.message);
+            } finally {
+                // Bloque finalizador corregido estrictamente
+                editBtn.textContent = "✏️";
+                editBtn.style.pointerEvents = "auto";
+                fileInput.value = "";
             }
-        } catch (error) {
-            console.error("Error al subir archivo:", error);
-            alert("Error al intentar subir la imagen: " + error.message);
-        } {
-            editBtn.textContent = "✏️";
-            editBtn.style.pointerEvents = "auto";
-            fileInput.value = "";
-        }
-    };
+        };
+    }
 
     // Funcionalidad del Botón Cerrar Sesión (Modular v10)
-    document.getElementById('btn-logout').onclick = async () => {
-        if (confirm("¿Estás seguro de que deseas cerrar tu sesión?")) {
-            try {
-                const auth = getAuth();
-                await auth.signOut();
-                
-                store.setState({ user: null });
-                
-                // Redirección SPA limpia a la raíz
-                window.history.pushState({}, "", "/");
-                window.dispatchEvent(new Event('popstate'));
-            } catch (err) {
-                alert("Error al cerrar sesión: " + err.message);
+    const logoutBtn = document.getElementById('btn-logout');
+    if (logoutBtn) {
+        logoutBtn.onclick = async () => {
+            if (confirm("¿Estás seguro de que deseas cerrar tu sesión?")) {
+                try {
+                    const auth = getAuth();
+                    await auth.signOut();
+                    
+                    store.setState({ user: null });
+                    
+                    // Redirección SPA limpia a la raíz
+                    window.history.pushState({}, "", "/");
+                    window.dispatchEvent(new Event('popstate'));
+                } catch (err) {
+                    alert("Error al cerrar sesión: " + err.message);
+                }
             }
-        }
-    };
+        };
+    }
 }
 
 export function trackVisitedProduct(product) {
