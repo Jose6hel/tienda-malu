@@ -1,8 +1,8 @@
 import { store } from '../core/store.js';
 import { sanitize } from '../core/router.js';
-import { storage } from '../core/firebase.js'; 
+import { auth, storage } from '../core/firebase.js'; 
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { updateProfile, getAuth } from "firebase/auth";
+import { updateProfile } from "firebase/auth";
 
 /**
  * Renderiza la vista de Perfil de Usuario con su historial de navegación.
@@ -122,13 +122,12 @@ export function renderProfile(container) {
             editBtn.style.pointerEvents = "none";
 
             try {
-                // 1. Subida directa usando la SDK v10 Modular
+                // 1. Subida directa usando la instancia importada de Storage
                 const storageRef = ref(storage, `avatars/${Date.now()}_${file.name}`);
                 const snapshot = await uploadBytes(storageRef, file);
                 const downloadUrl = await getDownloadURL(snapshot.ref);
 
-                // 2. Actualizar de forma nativa en Firebase Auth v10
-                const auth = getAuth();
+                // 2. Actualizar de forma nativa usando la instancia importada de Auth
                 const authUser = auth.currentUser;
                 
                 if (authUser) {
@@ -147,12 +146,14 @@ export function renderProfile(container) {
                     // Cambiar visualmente la imagen al instante en la pantalla
                     if (avatarImg) avatarImg.src = downloadUrl;
                     alert("¡Tu foto de perfil ha sido subida y actualizada con éxito!");
+                } else {
+                    alert("No se encontró una sesión activa para actualizar el perfil.");
                 }
             } catch (error) {
                 console.error("Error al subir archivo:", error);
                 alert("Error al intentar subir la imagen: " + error.message);
             } finally {
-                // Bloque finalizador corregido estrictamente
+                // Bloque finalizador
                 editBtn.textContent = "✏️";
                 editBtn.style.pointerEvents = "auto";
                 fileInput.value = "";
@@ -160,13 +161,12 @@ export function renderProfile(container) {
         };
     }
 
-    // Funcionalidad del Botón Cerrar Sesión (Modular v10)
+    // Funcionalidad del Botón Cerrar Sesión
     const logoutBtn = document.getElementById('btn-logout');
     if (logoutBtn) {
         logoutBtn.onclick = async () => {
             if (confirm("¿Estás seguro de que deseas cerrar tu sesión?")) {
                 try {
-                    const auth = getAuth();
                     await auth.signOut();
                     
                     store.setState({ user: null });
