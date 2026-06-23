@@ -4,11 +4,10 @@ import { renderNavbar } from '../components/navbar.js';
 import { renderHome } from '../views/home.js';
 import { renderProductDetail } from '../views/product.js';
 import { renderAdmin } from '../views/admin.js';
-// IMPORTACIÓN NUEVA: Se añade la vista de perfil de usuario
-import { renderProfile } from '../views/profile.js';
+// CORRECCIÓN 1: Forzamos la actualización del archivo profile saltándonos la caché congelada
+import { renderProfile } from '../views/profile.js?v=2';
 import { db } from './firebase.js';
 import { collection, query, where, onSnapshot } from "firebase/firestore";
-// IMPORTACIÓN NUEVA: Módulo de comentarios
 import { initCommentsModule } from '../components/comments.js';
 
 // Lista de correos autorizados como Administradores
@@ -119,6 +118,9 @@ document.addEventListener('DOMContentLoaded', () => {
     router();
 });
 
+// CORRECCIÓN 2: Cada vez que cambie el estado (ej. cerrar sesión), actualizamos el Navbar Y ejecutamos el router
+// para que limpie la pantalla y pinte la vista de "Acceso Restringido" inmediatamente.
 store.subscribe(() => {
     renderNavbar();
+    router();
 });
