@@ -1,5 +1,8 @@
 import { store } from '../core/store.js';
 import { sanitize } from '../core/router.js';
+import { storage } from '../core/firebase.js'; 
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { updateProfile, getAuth } from "firebase/auth";
 
 /**
  * Renderiza la vista de Perfil de Usuario con su historial de navegación.
@@ -52,7 +55,7 @@ export function renderProfile(container) {
                         <img src="${displayImage}" alt="${sanitize(product.name)}" style="width:100%; height:100%; object-fit:cover;">
                     </div>
                     <div class="card-body" style="padding: 12px; display: flex; flex-direction: column; flex-grow: 1;">
-                        <h3 style="font-size: 0.95rem; font-weight: 600; margin: 4px 0; color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 2.4em;">${sanitize(product.name)}</h3>
+                        <h3 style="font-size: 0.95rem; font-weight: 600; margin: 4px 0; color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 2.4em;">${sanitize(product.name)}</h3>
                         <p class="product-price" style="font-weight: 700; color: var(--primary); margin-top: auto;">$${product.price.toLocaleString()}</p>
                     </div>
                 </div>
@@ -107,7 +110,7 @@ export function renderProfile(container) {
     // Vincular el click del botón al input oculto
     editBtn.onclick = () => fileInput.click();
 
-    // Evento al seleccionar una foto desde el dispositivo
+    // Evento modular v10 para procesar y persistir el archivo
     fileInput.onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -116,52 +119,50 @@ export function renderProfile(container) {
         editBtn.style.pointerEvents = "none";
 
         try {
-            if (window.firebase) {
-                // Generar referencia en Firebase Storage
-                const storageRef = window.firebase.storage().ref(`avatars/${Date.now()}_${file.name}`);
-                
-                // Subir el archivo binario de forma nativa
-                const snapshot = await storageRef.put(file);
-                
-                // Obtener la URL de descarga del archivo subido
-                const downloadUrl = await snapshot.ref.getDownloadURL();
+            // 1. Subida directa usando la SDK v10 Modular
+            const storageRef = ref(storage, `avatars/${Date.now()}_${file.name}`);
+            const snapshot = await uploadBytes(storageRef, file);
+            const downloadUrl = await getDownloadURL(snapshot.ref);
 
-                const authUser = window.firebase.auth().currentUser;
-                if (authUser) {
-                    // Actualizar el photoURL en los servidores de Firebase
-                    await authUser.updateProfile({ photoURL: downloadUrl });
-                    
-                    // Sincronizar de forma estricta los tokens locales de sesión
-                    await authUser.reload();
-                    
-                    // Volver a capturar la instancia fresca del usuario para actualizar el store
-                    const refreshedUser = window.firebase.auth().currentUser;
-                    store.setState({ user: refreshedUser });
-                    
-                    // Refrescar inmediatamente el elemento en pantalla
-                    avatarImg.src = downloadUrl;
-                    alert("¡Tu foto de perfil ha sido subida y actualizada con éxito!");
-                }
-            } else {
-                throw new Error("No se detectó la instancia global de Firebase.");
+            // 2. Actualizar de forma nativa en Firebase Auth v10
+            const auth = getAuth();
+            const authUser = auth.currentUser;
+            
+            if (authUser) {
+                // Actualizamos el perfil directamente en el servidor de Firebase
+                await updateProfile(authUser, { photoURL: downloadUrl });
+                
+                // Actualizamos el Store local de inmediato clonando de forma limpia las propiedades legibles
+                store.setState({ 
+                    user: {
+                        uid: authUser.uid,
+                        email: authUser.email,
+                        displayName: authUser.displayName,
+                        photoURL: downloadUrl // Forzamos la nueva URL para evitar el retraso del token
+                    } 
+                });
+                
+                // Cambiar visualmente la imagen al instante en la pantalla
+                if (avatarImg) avatarImg.src = downloadUrl;
+                alert("¡Tu foto de perfil ha sido subida y actualizada con éxito!");
             }
         } catch (error) {
-            console.error("Error completo en la subida:", error);
+            console.error("Error al subir archivo:", error);
             alert("Error al intentar subir la imagen: " + error.message);
-        } finally {
+        } {
             editBtn.textContent = "✏️";
             editBtn.style.pointerEvents = "auto";
             fileInput.value = "";
         }
     };
 
-    // Funcionalidad del Botón Cerrar Sesión
+    // Funcionalidad del Botón Cerrar Sesión (Modular v10)
     document.getElementById('btn-logout').onclick = async () => {
         if (confirm("¿Estás seguro de que deseas cerrar tu sesión?")) {
             try {
-                if (window.firebase) {
-                    await window.firebase.auth().signOut();
-                }
+                const auth = getAuth();
+                await auth.signOut();
+                
                 store.setState({ user: null });
                 
                 // Redirección SPA limpia a la raíz
