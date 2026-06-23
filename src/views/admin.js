@@ -6,11 +6,12 @@ import { sanitize } from '../core/router.js';
 // LISTA DE ADMINISTRADORES AUTORIZADOS
 const ADMIN_WHITELIST = [
     "mariaveranodevalencia@gmail.com",
-    "josegamer18901@gmail.com" // Autorizado automáticamente para tus pruebas de desarrollo
+    "josegamer18901@gmail.com",
+    "jos3davidortizverano2009@gmail.com" // Agregado para asegurar correspondencia con el Navbar SPA
 ];
 
 export async function renderAdmin(container, currentUserEmail) {
-    // Validación de seguridad por correo
+    // Validación de seguridad estricta por correo electrónico
     if (!currentUserEmail || !ADMIN_WHITELIST.map(e => e.toLowerCase()).includes(currentUserEmail.toLowerCase())) {
         container.innerHTML = `
             <div style="padding: 40px; text-align: center;">
@@ -39,7 +40,6 @@ export async function renderAdmin(container, currentUserEmail) {
     const contentArea = document.getElementById('admin-content');
     const tabs = document.querySelectorAll('.admin-tab-btn');
 
-    // Función estética para resaltar la pestaña activa en el panel lateral
     const switchTabHighlight = (activeId) => {
         tabs.forEach(btn => {
             if (btn.id === activeId) {
@@ -69,7 +69,7 @@ export async function renderAdmin(container, currentUserEmail) {
         showAnalyticsManagement(contentArea);
     };
 
-    // Inicialización por defecto
+    // Inicialización de la primera pestaña por defecto
     switchTabHighlight('tab-products');
     showProductManagement(contentArea);
 }
