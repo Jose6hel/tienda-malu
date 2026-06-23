@@ -6,7 +6,7 @@ import { sanitize } from '../core/router.js';
 // LISTA DE ADMINISTRADORES AUTORIZADOS
 const ADMIN_WHITELIST = [
     "mariaveranodevalencia@gmail.com",
-    "jos3davidortizverano2009@gmail.com" // Autorizado automáticamente para tus pruebas de desarrollo
+    "josegamer18901@gmail.com" // Autorizado automáticamente para tus pruebas de desarrollo
 ];
 
 export async function renderAdmin(container, currentUserEmail) {
@@ -167,7 +167,6 @@ async function showProductManagement(target) {
     const btnSubmit = document.getElementById('btn-submit-form');
     const btnCancel = document.getElementById('btn-cancel-edit');
 
-    // Lógica para calcular automáticamente el precio final y cambiar la etiqueta a "Descuento"
     const inputOriginalPrice = document.getElementById('p-original-price');
     const inputDiscountPercentage = document.getElementById('p-discount-percentage');
     const inputFinalPrice = document.getElementById('p-price');
@@ -180,7 +179,7 @@ async function showProductManagement(target) {
         if (originalPrice > 0 && discount > 0) {
             const finalPrice = originalPrice - (originalPrice * (discount / 100));
             inputFinalPrice.value = Math.round(finalPrice);
-            selectTag.value = "Descuento"; // Selecciona automáticamente la etiqueta Descuento
+            selectTag.value = "Descuento";
         } else if (originalPrice > 0 && discount === 0) {
             inputFinalPrice.value = originalPrice;
         }
@@ -325,7 +324,7 @@ async function showProductManagement(target) {
             if (editId) {
                 await updateDoc(doc(db, "products", editId), productData);
                 form.removeAttribute('data-edit-id');
-                formTitle.textContent = "Agregar Nuevo Producto";
+                formTitle.textContent = "Editar Producto";
                 btnSubmit.textContent = "Guardar Producto en Producción";
                 btnCancel.classList.add('hidden');
                 alert("Producto modificado correctamente.");
@@ -405,24 +404,53 @@ async function showCategoryManagement(target) {
 
 async function showAnnouncementManagement(target) {
     target.innerHTML = `
-        <h2 style="margin-bottom:20px; font-size:1.4rem; font-weight:700;">Marquesina de Anuncios</h2>
-        <div class="form-group" style="margin-bottom: 16px;">
-            <label style="display:block; margin-bottom:6px; font-weight:600; font-size:14px;">Texto Informativo Destacado</label>
-            <input type="text" id="announcement-input" class="form-input" style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border); background:var(--background); color:var(--text);" placeholder="Ej: ¡Descuento del 10% en accesorios pagando en efectivo!">
+        <h2 style="margin-bottom:20px; font-size:1.4rem; font-weight:700;">Marquesina de Anuncios y Pop-up Emergente</h2>
+        
+        <div style="background: var(--background); padding: 16px; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 24px;">
+            <h3 style="font-size:1.1rem; margin-bottom:12px; font-weight:600;">1. Marquesina de Texto</h3>
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label style="display:block; margin-bottom:6px; font-weight:600; font-size:14px;">Texto Informativo Destacado</label>
+                <input type="text" id="announcement-input" class="form-input" style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text);" placeholder="Ej: ¡Descuento del 10% en accesorios pagando en efectivo!">
+            </div>
+            <button class="btn btn-primary" id="btn-save-announcement" style="padding: 10px 16px;">Actualizar Texto Marquesina</button>
         </div>
-        <button class="btn btn-primary" id="btn-save-announcement" style="padding: 12px 20px;">Actualizar y Publicar Anuncio</button>
+
+        <div style="background: var(--background); padding: 16px; border-radius: var(--radius); border: 1px solid var(--border);">
+            <h3 style="font-size:1.1rem; margin-bottom:12px; font-weight:600;">2. Anuncio Emergente (Pop-up publicitario)</h3>
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label style="display:block; margin-bottom:6px; font-weight:600; font-size:14px;">Imagen del Anuncio (Formatos: JPG, PNG, WEBP)</label>
+                <input type="file" id="popup-image-input" class="form-input" style="width:100%; padding:8px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text);" accept="image/*">
+            </div>
+            <button class="btn btn-primary" id="btn-save-popup" style="padding: 10px 16px; background: #22C55E; color: white;">Subir y Activar Imagen</button>
+            
+            <div id="popup-preview-container" style="margin-top:16px; display:none;">
+                <p style="font-size:13px; font-weight:600; margin-bottom:6px;">Anuncio actual en pantalla:</p>
+                <img id="popup-preview-img" src="" style="max-width:200px; max-height:200px; border-radius:6px; border:1px solid var(--border); object-fit:cover; display:block;">
+            </div>
+        </div>
     `;
 
     const input = document.getElementById('announcement-input');
     const btn = document.getElementById('btn-save-announcement');
+    const popupInput = document.getElementById('popup-image-input');
+    const btnPopup = document.getElementById('btn-save-popup');
+    const previewContainer = document.getElementById('popup-preview-container');
+    const previewImg = document.getElementById('popup-preview-img');
 
+    // Cargar datos actuales desde Firestore
     const snap = await getDocs(collection(db, "announcements"));
     let existingDocId = null;
     if (!snap.empty) {
         existingDocId = snap.docs[0].id;
-        input.value = snap.docs[0].data().text;
+        const data = snap.docs[0].data();
+        input.value = data.text || "";
+        if (data.popupImageUrl) {
+            previewImg.src = data.popupImageUrl;
+            previewContainer.style.display = 'block';
+        }
     }
 
+    // Acción 1: Guardar Texto
     btn.onclick = async () => {
         const text = input.value.trim();
         if (!text) return alert("Por favor escriba un texto válido.");
@@ -436,6 +464,37 @@ async function showAnnouncementManagement(target) {
             alert("Marquesina global de anuncios actualizada.");
         } catch (e) {
             alert("Error al actualizar la marquesina: " + e.message);
+        }
+    };
+
+    // Acción 2: Guardar Imagen Pop-up
+    btnPopup.onclick = async () => {
+        const file = popupInput.files[0];
+        if (!file) return alert("Por favor selecciona una imagen para el Pop-up.");
+
+        btnPopup.textContent = "Subiendo imagen...";
+        btnPopup.disabled = true;
+
+        try {
+            const storageRef = ref(storage, `announcements/popup_${Date.now()}_${file.name}`);
+            const uploadResult = await uploadBytes(storageRef, file);
+            const url = await getDownloadURL(uploadResult.ref);
+
+            if (existingDocId) {
+                await updateDoc(doc(db, "announcements", existingDocId), { popupImageUrl: url });
+            } else {
+                await addDoc(collection(db, "announcements"), { text: "", active: true, popupImageUrl: url });
+            }
+
+            previewImg.src = url;
+            previewContainer.style.display = 'block';
+            popupInput.value = "";
+            alert("¡Imagen del Anuncio Emergente actualizada correctamente!");
+        } catch (e) {
+            alert("Error al subir el anuncio: " + e.message);
+        } finally {
+            btnPopup.textContent = "Subir y Activar Imagen";
+            btnPopup.disabled = false;
         }
     };
 }
