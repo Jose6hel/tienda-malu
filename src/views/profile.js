@@ -107,12 +107,10 @@ export function renderProfile(container) {
     const avatarImg = document.getElementById('profile-avatar-img');
     const editBtn = document.getElementById('btn-edit-avatar');
 
-    // Vincular el click del botón al input oculto
     if (editBtn) {
         editBtn.onclick = () => fileInput.click();
     }
 
-    // Evento modular v10 para procesar y persistir el archivo
     if (fileInput) {
         fileInput.onchange = async (e) => {
             const file = e.target.files[0];
@@ -121,19 +119,33 @@ export function renderProfile(container) {
             editBtn.textContent = "⏳";
             editBtn.style.pointerEvents = "none";
 
+            // Validar de antemano que las instancias no sean nulas o indefinidas
+            if (!storage) {
+                alert("Error de configuración: La instancia de Firebase Storage no está cargada correctamente.");
+                editBtn.textContent = "✏️";
+                editBtn.style.pointerEvents = "auto";
+                return;
+            }
+
             try {
-                // 1. Subida directa usando la instancia importada de Storage
-                const storageRef = ref(storage, `avatars/${Date.now()}_${file.name}`);
+                // Generar un nombre único limpio para el archivo
+                const fileExtension = file.name.split('.').pop();
+                const fileName = `avatars/${Date.now()}_perfil.${fileExtension}`;
+                
+                // 1. Crear referencia explícita usando la instancia directa de tu core
+                const storageRef = ref(storage, fileName);
+                
+                // 2. Ejecutar subida de bytes
                 const snapshot = await uploadBytes(storageRef, file);
                 const downloadUrl = await getDownloadURL(snapshot.ref);
 
-                // 2. Actualizar de forma nativa usando la instancia importada de Auth
+                // 3. Obtener el usuario activo de la instancia de autenticación directa
                 const authUser = auth.currentUser;
                 
                 if (authUser) {
                     await updateProfile(authUser, { photoURL: downloadUrl });
                     
-                    // Actualizamos el Store local de inmediato clonando de forma limpia
+                    // Sincronizar el store local
                     store.setState({ 
                         user: {
                             uid: authUser.uid,
@@ -143,17 +155,16 @@ export function renderProfile(container) {
                         } 
                     });
                     
-                    // Cambiar visualmente la imagen al instante en la pantalla
                     if (avatarImg) avatarImg.src = downloadUrl;
                     alert("¡Tu foto de perfil ha sido subida y actualizada con éxito!");
                 } else {
-                    alert("No se encontró una sesión activa para actualizar el perfil.");
+                    alert("No se detectó un usuario autenticado activo en la sesión.");
                 }
             } catch (error) {
-                console.error("Error al subir archivo:", error);
-                alert("Error al intentar subir la imagen: " + error.message);
+                console.error("Error capturado detalladamente:", error);
+                // Si el error tiene un código interno de Firebase de permisos, lo sabremos aquí
+                alert(`Error devuelto por el sistema:\n${error.message || error}`);
             } finally {
-                // Bloque finalizador
                 editBtn.textContent = "✏️";
                 editBtn.style.pointerEvents = "auto";
                 fileInput.value = "";
@@ -168,10 +179,7 @@ export function renderProfile(container) {
             if (confirm("¿Estás seguro de que deseas cerrar tu sesión?")) {
                 try {
                     await auth.signOut();
-                    
                     store.setState({ user: null });
-                    
-                    // Redirección SPA limpia a la raíz
                     window.history.pushState({}, "", "/");
                     window.dispatchEvent(new Event('popstate'));
                 } catch (err) {
