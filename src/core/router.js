@@ -5,88 +5,77 @@ import { renderHome } from '../views/home.js';
 import { renderProductDetail } from '../views/product.js';
 import { renderAdmin } from '../views/admin.js';
 import { db } from './firebase.js';
-import { auth } from './firebase.js'; // Importamos auth directamente aquí
+import { auth } from './firebase.js'; 
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { initCommentsModule } from '../components/comments.js';
 
-// Lista de correos autorizados como Administradores
 const ADMIN_EMAILS = [
     'jos3davidortizverano2009@gmail.com',
     'mariaveranodevalencia@gmail.com'
 ];
 
-// Sanitización de entradas globales contra ataques XSS
 export function sanitize(string) {
     if (!string) return '';
     const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;', "/": '&#x2F;' };
     return string.replace(/[&<>"'/]/g, (s) => map[s]);
 }
 
-// ==========================================================
-// VISTA DE PERFIL INYECTADA DIRECTAMENTE PARA EVITAR CACHÉ
-// ==========================================================
+// Vista ultra-limpia inyectada sin referencias a imágenes editables
 function renderProfileDirect(container) {
     if (!container) return;
     const { user } = store.state;
 
     if (!user) {
         container.innerHTML = `
-            <div style="max-width: 500px; margin: 60px auto; padding: 32px; text-align: center; background: var(--surface); border-radius: 8px; color: var(--text); box-shadow: var(--shadow);">
-                <span style="font-size: 4rem;">🔒</span>
-                <h2 style="margin: 16px 0 8px 0; font-weight: 700;">Acceso Restringido</h2>
-                <p style="color: var(--text-muted); margin-bottom: 24px;">Para ver tu perfil, necesitas ingresar a tu cuenta.</p>
-                <button class="btn btn-primary" id="profile-login-btn" style="width: 100%; padding: 12px;">Ingresar con mi Correo</button>
+            <div style="max-width: 500px; margin: 60px auto; padding: 32px; text-align: center; background: var(--surface); border-radius: 8px; color: var(--text);">
+                <h2>Acceso Restringido</h2>
+                <p>Necesitas iniciar sesión.</p>
             </div>
         `;
-        document.getElementById('profile-login-btn').onclick = () => {
-            const loginBtn = document.getElementById('btn-login-modal') || document.getElementById('btn-login-mobile');
-            if (loginBtn) loginBtn.click();
-        };
         return;
     }
 
     const avatarUrl = 'https://api.dicebear.com/7.x/bottts/svg?seed=' + (user.email || 'invitado');
 
     container.innerHTML = `
-        <div style="max-width: 600px; margin: 40px auto; padding: 0 16px;">
-            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 32px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 20px; box-shadow: var(--shadow);">
+        <div style="max-width: 600px; margin: 40px auto; padding: 20px;">
+            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 32px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 20px;">
                 <img src="${avatarUrl}" alt="Avatar" style="width: 100px; height: 100px; border-radius: 50%; border: 3px solid var(--primary);">
                 <div>
-                    <h2 style="margin: 0 0 6px 0; font-size: 1.5rem; color: var(--text);">Tu Cuenta</h2>
-                    <p style="margin: 0; color: var(--text-muted);">📧 <b>${sanitize(user.email)}</b></p>
+                    <h2 style="margin: 0;">Tu Cuenta</h2>
+                    <p style="color: var(--text-muted); margin: 6px 0;">📧 <b>${sanitize(user.email)}</b></p>
                 </div>
                 <hr style="width: 100%; border: 0; border-top: 1px solid var(--border);">
-                <button id="btn-logout-direct" class="btn" style="background: #EF4444; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: 600; cursor: pointer; width: 100%;">
-                    🚪 Cerrar Sesión
+                <button id="btn-logout-force" style="background: #EF4444; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: 600; cursor: pointer; width: 100%;">
+                    🚪 Cerrar Sesión Total
                 </button>
             </div>
         </div>
     `;
 
-    // Listener del botón directo
-    const logoutBtn = document.getElementById('btn-logout-direct');
+    // Evento de click forzado
+    const logoutBtn = document.getElementById('btn-logout-force');
     if (logoutBtn) {
         logoutBtn.onclick = async (e) => {
             e.preventDefault();
-            if (confirm("¿Estás seguro de que deseas cerrar tu sesión?")) {
+            if (confirm("¿Cerrar sesión?")) {
                 try {
                     await auth.signOut();
                     store.setState({ user: null });
-                    window.location.href = "/"; // Forzar recarga total al inicio limpiando todo rastro
+                    window.location.href = window.location.origin; // Redirección total recargando el navegador
                 } catch (err) {
-                    alert("Error al cerrar sesión: " + err.message);
+                    alert("Error: " + err.message);
                 }
             }
         };
     }
 }
-// ==========================================================
 
 const routes = {
     '/': renderHome,
     '/product': renderProductDetail,
     '/admin': renderAdmin,
-    '/profile': renderProfileDirect, // Usamos la función interna
+    '/profile': renderProfileDirect,
     '/perfil': renderProfileDirect
 };
 
@@ -98,7 +87,7 @@ async function router() {
             await handleSignInWithLink(); 
             window.history.replaceState({}, "", "/");
         } catch (e) {
-            alert("Error en validación de enlace de acceso: " + e.message);
+            console.error(e);
         }
     }
 
@@ -110,13 +99,7 @@ async function router() {
     const currentUser = store.state.user;
 
     if (path.startsWith('/admin')) {
-        if (!currentUser) {
-            window.history.pushState({}, "", "/");
-            router();
-            return;
-        }
-        if (!ADMIN_EMAILS.includes(currentUser.email)) {
-            alert("Acceso denegado: No tienes permisos de administrador.");
+        if (!currentUser || !ADMIN_EMAILS.includes(currentUser.email)) {
             window.history.pushState({}, "", "/");
             router();
             return;
@@ -124,9 +107,7 @@ async function router() {
     }
 
     renderNavbar();
-    
     const viewFunction = routes[path] || routes['/'];
-    
     const root = document.getElementById('app-root');
     if (root) {
         root.innerHTML = ''; 
@@ -141,8 +122,7 @@ function initAnnouncements() {
         const textNode = document.getElementById('announcement-text');
         if (bar && textNode) {
             if (!snapshot.empty) {
-                const data = snapshot.docs[0].data();
-                textNode.textContent = data.text;
+                textNode.textContent = snapshot.docs[0].data().text;
                 bar.classList.remove('hidden');
             } else {
                 bar.classList.add('hidden');
@@ -161,7 +141,6 @@ document.addEventListener('DOMContentLoaded', () => {
             router();
         }
     });
-    
     initAnnouncements();
     initCommentsModule();
     router();
